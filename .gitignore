@@ -1,0 +1,9 @@
+envs
+*.swp
+.ipynb_checkpoints
+jobs
+inputs.json
+
+kapsel.yml
+data/
+*.pyc

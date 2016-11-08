@@ -1,0 +1,122 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>{{name}}</title>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.0/jquery-ui.js"></script>
+    <link href="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.0/jquery-ui.css" rel="stylesheet" />
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.1/js/standalone/selectize.js"></script>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.1/css/selectize.bootstrap3.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/json-editor/0.7.28/jsoneditor.min.js"></script>
+    <style>
+    /* http://stackoverflow.com/questions/9590313/how-to-use-the-scroll-and-max-options-in-autocomplete */
+    .ui-autocomplete {
+        max-height: 400px;
+        overflow-y: auto;
+        /* prevent horizontal scrollbar */
+        overflow-x: hidden;
+        /* add padding to account for vertical scrollbar */
+        padding-right: 20px;
+        z-index:1000 !important;
+    }
+    .ui-widget-content {
+        background: #eee !important; /* default produces horizontal line artifact in safari */
+    }
+    body {
+        padding: 10px;
+    }
+    </style>
+  </head>
+  <body>
+    <h1>{{name}}</h1>
+
+    <div id="description">{{description}}</div>
+    
+    <div id='editor_holder'></div>
+    <button id='submit'>Run notebook</button>
+
+    <div id='modes'></div>
+    <div id='output'></div>
+    
+    <script>
+    JSONEditor.plugins.selectize.enable = true;
+
+    // Initialize the editor with a JSON schema
+    var editor = new JSONEditor(document.getElementById('editor_holder'),{
+        schema: {{json_schema}},
+        disable_collapse: true,
+        disable_edit_json: true,
+        disable_properties: true,
+        theme: 'bootstrap3',
+
+    });
+      
+    // Hook up the submit button to log to the console
+    document.getElementById('submit').addEventListener('click',function() {
+        // Get the value from the editor
+        console.log(editor.getValue());
+        $.ajax({
+            type: 'POST',
+            url: '/',
+            data: JSON.stringify(editor.getValue()),
+            contentType: 'application/json',
+            success: function (data) {
+                console.log(data);
+                window.location.href = '/results/' + data;
+            }
+        });
+    });
+
+    $('div[data-schemapath $= "_path"]').find("input").autocomplete({
+        source: '/ac',
+        change: function () {
+            var schemapath = $(this).closest('[data-schemapath]').data('schemapath');
+            var el = editor.getEditor(schemapath);
+            // following https://github.com/jdorn/json-editor/issues/140#issuecomment-46097721
+            // otherwise json-editor doesn't pick up the change...
+            var val = $(this).val();
+            el.input.value = ""
+            el.setValue(val);
+            el.input.value = val;
+        }
+
+    });
+
+    {% if uuid4 %}
+    $('button#submit').prop("disabled", true);
+    editor.setValue({{inputs}});
+    $('#output').html('<img src="/static/imgs/loading.gif">');
+
+    function load_output(mode) {
+        if (!mode) mode = "";
+
+        $.ajax({
+            type: 'GET',
+            url: '//localhost:8008/output/{{uuid4}}?mode=' + mode,
+            success: function (html) {
+                $('#output').html(html);
+                $('button#submit').prop("disabled", false);
+            }
+        });
+
+    }
+
+    var ws = new WebSocket('ws://localhost:8008/status/{{uuid4}}');
+    ws.onmessage = function(ev){
+        console.log(ev.data);
+        load_output();
+
+        $('#modes').html("View output as: <a href='#' data-mode='notebook'>notebook</a> <a href='#' data-mode='grid'>grid</a> <a href='#' data-mode='report'>report</a>");
+        $('#modes a').click(function () {
+            var mode = $(this).data("mode");
+            load_output(mode);
+        })
+
+    };
+    {% end %}
+
+    </script>
+
+  </body>
+</html>
