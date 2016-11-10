@@ -18,6 +18,9 @@ from collections import OrderedDict
 import uuid
 import glob
 import os
+import sys
+
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # unbuffered
 
 ROOT = os.path.dirname(__file__)
 
