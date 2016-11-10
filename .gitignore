@@ -7,3 +7,4 @@ inputs.json
 kapsel.yml
 data/
 *.pyc
+dappled_core.egg-info
