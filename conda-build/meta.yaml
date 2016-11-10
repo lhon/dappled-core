@@ -12,6 +12,7 @@ build:
   # noarch_python: True
   # preserve_egg_dir: True
   entry_points:
+    - dappled-run = dappled_core.web:main
     # Put any entry points (scripts to be generated automatically) here. The
     # syntax is module:function.  For example
     #
@@ -31,10 +32,10 @@ requirements:
 
   run:
     - python
-    # - notebook
-    # - ruamel.yaml
-    # - jupyter_dashboards
-    # - runipy
+    - notebook
+    - ruamel.yaml
+    - jupyter_dashboards
+    - runipy
 
 test:
   # Python imports
