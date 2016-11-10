@@ -2,10 +2,18 @@ from setuptools import setup
 
 setup(name='dappled-core',
       version='0.1.0',
-      packages=['dappled-core'],
-      # entry_points={
-      #     'console_scripts': [
-      #         'my_project = my_project.__main__:main'
-      #     ]
-      # },
+      packages=['dappled_core'],
+      include_package_data=True, # use MANIFEST.in
+      # package_data={
+      #   'dappled_core' : [
+      #       'static/*', 
+      #       'templates/*', 
+      #       'nbserver_extension/*'
+      #       ],
+      # }
+      entry_points={
+          'console_scripts': [
+              'dappled-run = dappled_core.web:main'
+          ]
+      },
       )

@@ -225,8 +225,11 @@ application = web.Application([
     autoescape=None,
     )
 
-if __name__ == '__main__':
+def main():
     http_server = HTTPServer(application)
     http_server.listen(8008)
     print 'ready'
     tornado.ioloop.IOLoop.instance().start()
+
+if __name__ == '__main__':
+    main()

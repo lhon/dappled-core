@@ -31,15 +31,15 @@ requirements:
 
   run:
     - python
-    - notebook
-    - ruamel.yaml
-    - jupyter_dashboards
-    - runipy
+    # - notebook
+    # - ruamel.yaml
+    # - jupyter_dashboards
+    # - runipy
 
 test:
   # Python imports
   imports:
-    - dappled
+    # - dappled_core
 
   commands:
     # You can put test commands to be run here.  Use this to test that the
@@ -55,10 +55,10 @@ test:
     # - nose
 
 about:
-  home: https://github.com/pwaller/pyfiglet
-  license: GNU General Public License v2 or later (GPLv2+)
-  summary: 'Pure-python FIGlet implementation'
-  license_family: GPL2
+  home: 
+  license: 
+  summary: 
+  license_family: OTHER
 
 # See
 # http://docs.continuum.io/conda/build.html for
