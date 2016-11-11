@@ -1,3 +1,5 @@
+from __future__ import absolute_import, print_function, division, unicode_literals
+
 import nbformat
 from nbconvert import HTMLExporter
 
@@ -8,27 +10,26 @@ from tornado import web, gen
 import tornado.websocket
 import tornado.locks
 import tornado.process
-import subprocess
 
 import ruamel.yaml
 import jinja2
 
+import argparse
+import errno
 import json
 from collections import OrderedDict
 import uuid
 import glob
 import os
+import socket
+import subprocess
 import sys
+import threading
+import webbrowser
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # unbuffered
 
 ROOT = os.path.dirname(__file__)
-
-type_map = {
-        str : 'string',
-        int : 'integer',
-        float: 'number',
-        }
 
 job_conditions = {}
 
@@ -84,7 +85,7 @@ class DappledApp(web.RequestHandler):
 
     @gen.coroutine
     def post(self):
-        print self.request.body
+        print(self.request.body)
 
         yml = ruamel.yaml.load(open('dappled.yml').read(), ruamel.yaml.RoundTripLoader) 
         notebook_filename = yml['filename']
@@ -97,7 +98,7 @@ class DappledApp(web.RequestHandler):
         os.mkdir(path)
 
         with open(os.path.join(path, 'inputs.json'), 'w') as f:
-            print >>f, self.request.body.strip()
+            print(self.request.body.strip(), file=f)
 
         job_conditions[uuid4] = tornado.locks.Condition()
         self.finish(uuid4)
@@ -169,7 +170,7 @@ class StatusHandler(tornado.websocket.WebSocketHandler):
     @gen.coroutine
     def open(self, uuid4):
         if uuid4 in job_conditions:
-            print uuid4, 'in job_conditions'
+            print(uuid4, 'in job_conditions')
 
             yield job_conditions[uuid4].wait()
 
@@ -199,7 +200,7 @@ class PathAutocompleteHandler(web.RequestHandler):
             
         if "*" not in glob_path:
             glob_path += "*"
-        print glob_path
+        print(glob_path)
 
         paths = [p+'/' if not p.endswith('/') and os.path.isdir(p) else p 
                         for p in glob.glob(glob_path)]
@@ -229,9 +230,58 @@ application = web.Application([
     )
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--port', type=int, default=8008)
+    parser.add_argument('--server', action="store_true")
+
+    args = parser.parse_args()
+
     http_server = HTTPServer(application)
-    http_server.listen(8008)
-    print 'ready'
+
+    if args.server:
+        ip = '0.0.0.0'
+    else:
+        ip = 'localhost'
+
+    # based on notebook/notebookapp.py
+    success = False
+    for port in range(args.port, args.port+10):
+        try:
+            http_server.listen(port, ip)
+        except socket.error as e:
+            if e.errno == errno.EADDRINUSE:
+                print('The port %i is already in use, trying another port.' % port)
+                continue
+            elif e.errno in (errno.EACCES, getattr(errno, 'WSAEACCES', errno.EACCES)):
+                print("Permission to listen on port %i denied" % port)
+                continue
+            else:
+                raise
+        else:
+            success = True
+            break
+    if not success:
+        print('ERROR: the notebook server could not be started because '
+                          'no available port could be found.')
+        sys.exit(1)
+
+    if args.server:
+        host = socket.gethostbyname_ex(socket.gethostname())
+        if host[0]:
+            print('Serving from %s:%d' % (host[0], port))
+        if len(host[2]) > 0:
+            print('Serving from %s:%d' % (host[2][0], port))
+    else:
+        url = 'http://%s:%d' % (ip, port)
+        print('Notebook is deployed at:', url)
+        try:
+            browser = webbrowser.get(None)
+        except webbrowser.Error as e:
+            browser = None
+        if browser:
+            b = lambda : browser.open(url, new=2)
+            threading.Thread(target=b).start()
+
     tornado.ioloop.IOLoop.instance().start()
 
 if __name__ == '__main__':

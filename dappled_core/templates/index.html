@@ -93,7 +93,7 @@
 
         $.ajax({
             type: 'GET',
-            url: '//localhost:8008/output/{{uuid4}}?mode=' + mode,
+            url: '/output/{{uuid4}}?mode=' + mode,
             success: function (html) {
                 $('#output').html(html);
                 $('button#submit').prop("disabled", false);
@@ -102,7 +102,13 @@
 
     }
 
-    var ws = new WebSocket('ws://localhost:8008/status/{{uuid4}}');
+    // http://stackoverflow.com/questions/10406930/how-to-construct-a-websocket-uri-relative-to-the-page-uri
+    function ws_url(s) {
+        var l = window.location;
+        return ((l.protocol === "https:") ? "wss://" : "ws://") + l.host + s;
+    }
+
+    var ws = new WebSocket(ws_url('/status/{{uuid4}}'));
     ws.onmessage = function(ev){
         console.log(ev.data);
         load_output();
