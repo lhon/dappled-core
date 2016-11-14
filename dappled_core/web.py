@@ -273,7 +273,7 @@ def main():
             print('Serving from %s:%d' % (host[2][0], port))
     else:
         url = 'http://%s:%d' % (ip, port)
-        print('Notebook is deployed at:', url)
+        print('Opening browser at:', url)
         try:
             browser = webbrowser.get(None)
         except webbrowser.Error as e:
