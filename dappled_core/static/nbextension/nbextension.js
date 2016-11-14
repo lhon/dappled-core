@@ -77,7 +77,7 @@ define([
         }
 
         function build_schema(params) {
-            var params = params || {};
+            var params = jQuery.extend(true, {}, params) || {}; // deep copy
             var simple_types = ["number", "string"];
             for (var k in params) {
                 // console.log(k, params[k])
@@ -193,7 +193,7 @@ define([
                         var hjson_text = editor.getSession().getValue();
                         var json = Hjson.parse(hjson_text);
                         var json_schema = build_schema(json);
-                        options.callback(hjson_text, json_schema)
+                        options.callback(json, json_schema)
                     }
                 },
                 Cancel: {}
@@ -236,6 +236,23 @@ define([
 
     };
     
+    function format_json(json, indent) {
+        if (!indent) indent = 0;
+        var json_str = "";
+        var newv;
+        for (var k in json) {
+            console.log(k, v)
+            var v = json[k];
+            if (typeof(v) != "object" || $.isArray(v)) {
+                newv = JSON.stringify(v);
+            } else {
+                newv = "{\n" + format_json(v, indent+2) + " ".repeat(indent) + "}";
+            }
+            json_str += " ".repeat(indent) + k + ": " + newv + "\n";
+        }
+
+        return json_str;
+    }
 
     function load_ipython_extension() {
 
@@ -243,12 +260,12 @@ define([
             var that = this;
             var md = Jupyter.notebook.metadata;
             if (!md.dappled) md.dappled = {};
-            if (!md.dappled.form) md.dappled.form = {hjson_text:"",json_schema:""}
+            if (!md.dappled.form) md.dappled.form = {json:"",json_schema:""}
             edit_metadata({
-                hjson_text: md.dappled.form.hjson_text,
-                callback: function (hjson_text, json_schema) {
+                hjson_text: format_json(md.dappled.form.json),
+                callback: function (json, json_schema) {
                     md.dappled.form = {
-                        hjson_text: hjson_text,
+                        json: json,
                         json_schema: json_schema
                     }
                 },
