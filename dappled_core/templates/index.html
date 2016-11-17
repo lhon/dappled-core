@@ -26,6 +26,23 @@
     body {
         padding: 10px;
     }
+
+    #stats td, #stats th {
+        padding: 5px;
+    }
+    #stats th:first-child {
+        width: 200px;
+    }
+    #stats tr:first-child {
+        background-color: #ddd
+    }
+    #stats tr:nth-child(odd) {
+        background-color: #f2f2f2
+    }
+    #stats {
+        border: 1px solid gray;
+        padding: 5px;
+    }
     </style>
   </head>
   <body>
@@ -110,6 +127,10 @@
 
     var ws = new WebSocket(ws_url('/status/{{uuid4}}'));
     ws.onmessage = function(ev){
+        if (ev.data != "done") {
+            $('#output').html('<img src="/static/imgs/loading.gif"><br />' + ev.data);
+            return;
+        }
         console.log(ev.data);
         load_output();
 

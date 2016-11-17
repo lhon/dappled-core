@@ -29,6 +29,7 @@ import webbrowser
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # unbuffered
 
+HOST = None
 ROOT = os.path.dirname(__file__)
 
 job_conditions = {}
@@ -103,8 +104,10 @@ class DappledApp(web.RequestHandler):
         job_conditions[uuid4] = tornado.locks.Condition()
         self.finish(uuid4)
 
-    	result, error = yield call_subprocess(['python', os.path.join(ROOT, 'run.py'), path, notebook_filename])
-        # print('stdin sync: ', result, error)
+        status_url = '/'.join([HOST, 'status/post', uuid4])
+        print('python', os.path.join(ROOT, 'run.py'), path, notebook_filename, status_url)
+    	result, error = yield call_subprocess(['python', os.path.join(ROOT, 'run.py'), path, notebook_filename, status_url])
+        print('stdin sync: ', result, error)
 
         job_conditions[uuid4].notify()
         del job_conditions[uuid4]
@@ -165,10 +168,12 @@ class OutputHandler(web.RequestHandler):
 
         self.finish(body)
 
-
+wss = {}
 class StatusHandler(tornado.websocket.WebSocketHandler):
     @gen.coroutine
     def open(self, uuid4):
+        wss[uuid4] = self
+
         if uuid4 in job_conditions:
             print(uuid4, 'in job_conditions')
 
@@ -184,6 +189,11 @@ class StatusHandler(tornado.websocket.WebSocketHandler):
 
 #        else:
 #            self.write_message('job not found')
+
+class StatusPostHandler(web.RequestHandler):
+    def post(self, uuid4):
+        wss[uuid4].write_message(self.request.body)
+        # print(self.request.body)
 
 class PathAutocompleteHandler(web.RequestHandler):
 
@@ -218,6 +228,7 @@ application = web.Application([
     (r'/results/%s' % _uuid4_regex, DappledApp), 
     (r'/output/%s' % _uuid4_regex, OutputHandler), 
     (r'/status/%s' % _uuid4_regex, StatusHandler), 
+    (r'/status/post/%s' % _uuid4_regex, StatusPostHandler), 
     (r'/ac', PathAutocompleteHandler),
 
     (r"/static/urth/(.*)", web.StaticFileHandler, {"path": os.path.join(ROOT, "static", "urth")}),
@@ -265,6 +276,7 @@ def main():
                           'no available port could be found.')
         sys.exit(1)
 
+    global HOST
     if args.server:
         host = socket.gethostbyname_ex(socket.gethostname())
         if host[0]:
@@ -273,6 +285,7 @@ def main():
             print('Serving from %s:%d' % (host[2][0], port))
     else:
         url = 'http://%s:%d' % (ip, port)
+        HOST = url
         print('Opening browser at:', url)
         try:
             browser = webbrowser.get(None)
