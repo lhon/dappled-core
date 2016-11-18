@@ -58,6 +58,7 @@
 
     <div id='modes'></div>
     <div id='output'></div>
+    <div id='results'></div>
 
     <h3>Parameters</h3>
 
@@ -86,9 +87,18 @@
         $.ajax({
             type: 'GET',
             url: '/output/{{uuid4}}?mode=' + mode,
-            success: function (html) {
-                $('#output').html(html);
-                $('button#submit').prop("disabled", false);
+            dataType: "json",
+            success: function (json) {
+                $('#output').html(json.html);
+
+                var results = $("<ul />")
+                $.each(json.results, function(i) {
+                    var li = $("<li/>").appendTo(results);
+                    var a = $('<a/>').attr('href', json.results[i].path)
+                        .text(json.results[i].description || json.results[i].path)
+                        .appendTo(li);
+                })
+                $('#results').html("<h3>Output Files</h3>").append(results);
             }
         });
 

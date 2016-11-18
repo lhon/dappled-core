@@ -177,7 +177,13 @@ class OutputHandler(web.RequestHandler):
 
         (body, resources) = exporter.from_notebook_node(notebook, resources)
 
-        self.finish(body)
+        j = dict(html=body)
+
+        yml = ruamel.yaml.load(open('dappled.yml').read(), ruamel.yaml.RoundTripLoader) 
+        if 'results' in yml:
+            j['results'] = yml['results']
+
+        self.finish(json.dumps(j))
 
 wss = {}
 class StatusHandler(tornado.websocket.WebSocketHandler):
