@@ -98,6 +98,10 @@ define([
                     };
                 }
 
+                if (k.endsWith("_paths")) {
+                    params[k]["format"] = "textarea"; // to allow newlines
+                }
+
                 if (!params[k]["type"]) {
                     params[k]["type"] = typeof(params[k]["default"]);
                 }

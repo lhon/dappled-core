@@ -92,7 +92,7 @@
     });
 
     // option names ending with _path will have autocomplete functionality
-    $('div[data-schemapath $= "_paths"], div[data-schemapath $= "_path"]').find("input")
+    $('div[data-schemapath $= "_paths"] textarea, div[data-schemapath $= "_path"] input')
             .removeClass('form-control').each(function () {
 
         var schemapath = $(this).closest('[data-schemapath]').data('schemapath');
