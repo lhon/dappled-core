@@ -111,6 +111,7 @@
             delimiter: "\n",
             highlight: false,
             maxItems: maxItems,
+            preload: true,
             // http://stackoverflow.com/questions/32378962/how-can-i-disable-automatic-filtering-in-selectize-js-built-in-plugin-modil
             score: function() { return function() { return 1; }; },
             load: function(query, callback) {
@@ -131,7 +132,6 @@
         var selectize = $select[0].selectize;
 
         var load = function(query, callback) {
-            if (!query.length) return callback();
             $.ajax({
                 url: '/ac?term=' + encodeURIComponent(query),
                 type: 'GET',
