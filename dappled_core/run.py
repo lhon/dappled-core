@@ -173,7 +173,7 @@ if __name__ == '__main__':
 
     while proc.poll() is None:
 
-        r = ['<table id="stats"><tr><th>Name</th><th>% CPU</th><th>Memory</th></tr>']
+        r = ['<table id="stats" class="infotable"><tr><th>Process Name</th><th>% CPU</th><th>Memory</th></tr>']
         update = pd.get_update()
         if update:
             r.extend('<tr><td>{}</td><td>{}</td><td>{}</td></tr>'.format(*x) for x in update)

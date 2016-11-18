@@ -27,22 +27,6 @@
         padding: 10px;
     }
 
-    #stats td, #stats th {
-        padding: 5px;
-    }
-    #stats th:first-child {
-        width: 200px;
-    }
-    #stats tr:first-child {
-        background-color: #ddd
-    }
-    #stats tr:nth-child(odd) {
-        background-color: #f2f2f2
-    }
-    #stats {
-        border: 1px solid gray;
-        padding: 5px;
-    }
     </style>
   </head>
   <body>
@@ -53,10 +37,32 @@
     <div id='editor_holder'></div>
     <button id='submit'>Run notebook</button>
 
-    <div id='modes'></div>
-    <div id='output'></div>
-    
     <script>
+
+    // selectize plugin for tab key expansion of paths
+    Selectize.define('tab_key_expand', function (options) {
+        var self = this;
+
+        this.onKeyDown = (function (e) {
+            var original = self.onKeyDown
+            return function (e) {
+                if (e.keyCode === 9) {
+                    var value = $(self.$activeOption[0]).data('value');
+                    // expand only if directory
+                    if (value.endsWith('/')) {
+                        console.log(self.getValue());
+                        self.setTextboxValue(self.getValue() + value);
+                        self.onSearchChange(value);
+                        self.refreshOptions();
+                        e.preventDefault()
+                        return;
+                    }
+                }
+                return original.apply(this, arguments);
+            }
+        })()
+    })
+
     JSONEditor.plugins.selectize.enable = true;
 
     // Initialize the editor with a JSON schema
@@ -85,63 +91,68 @@
         });
     });
 
-    $('div[data-schemapath $= "_path"]').find("input").autocomplete({
-        source: '/ac',
-        change: function () {
-            var schemapath = $(this).closest('[data-schemapath]').data('schemapath');
-            var el = editor.getEditor(schemapath);
-            // following https://github.com/jdorn/json-editor/issues/140#issuecomment-46097721
-            // otherwise json-editor doesn't pick up the change...
-            var val = $(this).val();
-            el.input.value = ""
-            el.setValue(val);
-            el.input.value = val;
+    // option names ending with _path will have autocomplete functionality
+    $('div[data-schemapath $= "_paths"], div[data-schemapath $= "_path"]').find("input")
+            .removeClass('form-control').each(function () {
+
+        var schemapath = $(this).closest('[data-schemapath]').data('schemapath');
+        console.log(schemapath);
+        if (schemapath.endsWith('_path')) {
+            var maxItems = 1;
+        } else {
+            var maxItems = null;
+        }
+
+        var self = this;
+        var $select = $( this ).selectize({
+            valueField: 'path',
+            labelField: 'path',
+            searchField: 'path',
+            options: [],
+            persist: false,
+            loadThrottle: 600,
+            create: false,
+            allowEmptyOption: true,
+            delimiter: "\n",
+            highlight: false,
+            selectOnTab: true,
+            maxItems: maxItems,
+            // http://stackoverflow.com/questions/32378962/how-can-i-disable-automatic-filtering-in-selectize-js-built-in-plugin-modil
+            score: function() { return function() { return 1; }; },
+            load: function(query, callback) {
+                load(query, callback);
+            },
+            plugins: ['tab_key_expand'],
+            onChange: function(val) {
+                var el = editor.getEditor(schemapath);
+                // following https://github.com/jdorn/json-editor/issues/140#issuecomment-46097721
+                // otherwise json-editor doesn't pick up the change...
+                el.input.value = "";
+                el.setValue(val);
+                el.input.value = val;
+            }
+
+        })
+
+        var selectize = $select[0].selectize;
+
+        var load = function(query, callback) {
+            if (!query.length) return callback();
+            $.ajax({
+                url: '/ac?term=' + encodeURIComponent(query),
+                type: 'GET',
+                dataType: 'json',
+                error: function() {
+                    callback();
+                },
+                success: function(res) {
+                    selectize.clearOptions();
+                    callback(res);
+                }
+            });
         }
 
     });
-
-    {% if uuid4 %}
-    $('button#submit').prop("disabled", true);
-    editor.setValue({{inputs}});
-    $('#output').html('<img src="/static/imgs/loading.gif">');
-
-    function load_output(mode) {
-        if (!mode) mode = "";
-
-        $.ajax({
-            type: 'GET',
-            url: '/output/{{uuid4}}?mode=' + mode,
-            success: function (html) {
-                $('#output').html(html);
-                $('button#submit').prop("disabled", false);
-            }
-        });
-
-    }
-
-    // http://stackoverflow.com/questions/10406930/how-to-construct-a-websocket-uri-relative-to-the-page-uri
-    function ws_url(s) {
-        var l = window.location;
-        return ((l.protocol === "https:") ? "wss://" : "ws://") + l.host + s;
-    }
-
-    var ws = new WebSocket(ws_url('/status/{{uuid4}}'));
-    ws.onmessage = function(ev){
-        if (ev.data != "done") {
-            $('#output').html('<img src="/static/imgs/loading.gif"><br />' + ev.data);
-            return;
-        }
-        console.log(ev.data);
-        load_output();
-
-        $('#modes').html("View output as: <a href='#' data-mode='notebook'>notebook</a> <a href='#' data-mode='grid'>grid</a> <a href='#' data-mode='report'>report</a>");
-        $('#modes a').click(function () {
-            var mode = $(this).data("mode");
-            load_output(mode);
-        })
-
-    };
-    {% end %}
 
     </script>
 

@@ -1,0 +1,123 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>{{name}}</title>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.0/jquery-ui.js"></script>
+    <link href="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.0/jquery-ui.css" rel="stylesheet" />
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.1/js/standalone/selectize.js"></script>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.1/css/selectize.bootstrap3.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/json-editor/0.7.28/jsoneditor.min.js"></script>
+    <style>
+    /* http://stackoverflow.com/questions/9590313/how-to-use-the-scroll-and-max-options-in-autocomplete */
+    .ui-autocomplete {
+        max-height: 400px;
+        overflow-y: auto;
+        /* prevent horizontal scrollbar */
+        overflow-x: hidden;
+        /* add padding to account for vertical scrollbar */
+        padding-right: 20px;
+        z-index:1000 !important;
+    }
+    .ui-widget-content {
+        background: #eee !important; /* default produces horizontal line artifact in safari */
+    }
+    body {
+        padding: 10px;
+    }
+
+    .infotable td, .infotable th {
+        padding: 5px;
+    }
+    .infotable tr:first-child {
+        background-color: #ddd
+    }
+    .infotable th:first-child, .infotable th:first-child {
+        padding-right: 10px;
+    }
+    .infotable tr:nth-child(odd) {
+        background-color: #f2f2f2
+    }
+    .infotable {
+        border: 1px solid gray;
+        padding: 5px;
+    }
+
+    #stats th:first-child {
+        width: 200px;
+    }
+
+    </style>
+  </head>
+  <body>
+    <h1>Results for {{name}}</h1>
+
+    <div id="description">{{description}}</div>
+    
+
+    <div id='modes'></div>
+    <div id='output'></div>
+
+    <h3>Parameters</h3>
+
+    <table class="infotable">
+        <tr><th>Option Name</th><th>Value</th></tr>
+        {% for key,value in inputs.items() %}
+        <tr><td>{{key}}</td><td>{{value}}</td></tr>
+        {% end %}
+    </table>
+
+    <h3>Job Info</h3>
+
+    <p>
+        Job ID: {{uuid4}}<br />
+        Started: 1/1/1111
+    </p>
+    
+
+    <script>
+    
+    $('#output').html('<img src="/static/imgs/loading.gif">');
+
+    function load_output(mode) {
+        if (!mode) mode = "";
+
+        $.ajax({
+            type: 'GET',
+            url: '/output/{{uuid4}}?mode=' + mode,
+            success: function (html) {
+                $('#output').html(html);
+                $('button#submit').prop("disabled", false);
+            }
+        });
+
+    }
+
+    // http://stackoverflow.com/questions/10406930/how-to-construct-a-websocket-uri-relative-to-the-page-uri
+    function ws_url(s) {
+        var l = window.location;
+        return ((l.protocol === "https:") ? "wss://" : "ws://") + l.host + s;
+    }
+
+    var ws = new WebSocket(ws_url('/status/{{uuid4}}'));
+    ws.onmessage = function(ev){
+        if (ev.data != "done") {
+            $('#output').html('<img src="/static/imgs/loading.gif"><br />' + ev.data);
+            return;
+        }
+        
+        load_output();
+
+        $('#modes').html("View output as: <a href='#' data-mode='notebook'>notebook</a> <a href='#' data-mode='grid'>grid</a> <a href='#' data-mode='report'>report</a>");
+        $('#modes a').click(function () {
+            var mode = $(this).data("mode");
+            load_output(mode);
+        })
+
+    };
+
+    </script>
+
+  </body>
+</html>

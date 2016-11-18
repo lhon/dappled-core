@@ -65,21 +65,14 @@ def call_subprocess(cmd, stdin_data=None, stdin_async=False):
 
     raise gen.Return((result, error))
 
-class DappledApp(web.RequestHandler):
+class DappledNotebook(web.RequestHandler):
     def get(self, uuid4=None):
         yml = ruamel.yaml.load(open('dappled.yml').read(), ruamel.yaml.RoundTripLoader) 
         notebook = nbformat.read(open(yml['filename']), as_version=4)
         json_schema = notebook.metadata.dappled.form.json_schema
         
-        if uuid4 is not None:
-            inputs = open(os.path.join('jobs', uuid4, 'inputs.json')).read()
-        else:
-            inputs = None
-
         self.render('index.html',
             json_schema=json.dumps(json_schema),
-            inputs=inputs,
-            uuid4=uuid4,
             name=yml.get('name') or '',
             description = yml.get('description') or '',
         )
@@ -111,6 +104,24 @@ class DappledApp(web.RequestHandler):
 
         job_conditions[uuid4].notify()
         del job_conditions[uuid4]
+
+class ResultsHandler(web.RequestHandler):
+    def get(self, uuid4):
+        yml = ruamel.yaml.load(open('dappled.yml').read(), ruamel.yaml.RoundTripLoader) 
+        notebook = nbformat.read(open(yml['filename']), as_version=4)
+        json_schema = notebook.metadata.dappled.form.json_schema
+        
+        inputs_path = os.path.join('jobs', uuid4, 'inputs.json')
+        inputs = json.load(open(inputs_path))
+
+        self.render('results.html',
+            json_schema=json.dumps(json_schema),
+            inputs=inputs,
+            uuid4=uuid4,
+            name=yml.get('name') or '',
+            description = yml.get('description') or '',
+        )
+
 
 def get_app_exporter():
     here = os.path.dirname(__file__)
@@ -215,8 +226,10 @@ class PathAutocompleteHandler(web.RequestHandler):
         paths = [p+'/' if not p.endswith('/') and os.path.isdir(p) else p 
                         for p in glob.glob(glob_path)]
 
+        # paths = [dict(value=p) for p in paths]
+
         # selectize remote source format
-        paths = [dict(value=p) for p in paths]
+        paths = [dict(path=p) for p in paths]
 
         self.finish(json.dumps(paths))
 
@@ -224,8 +237,8 @@ class PathAutocompleteHandler(web.RequestHandler):
 _uuid4_regex = r"(?P<uuid4>[0-9a-f-]{36})"
 
 application = web.Application([
-    (r'/', DappledApp),
-    (r'/results/%s' % _uuid4_regex, DappledApp), 
+    (r'/', DappledNotebook),
+    (r'/results/%s' % _uuid4_regex, ResultsHandler), 
     (r'/output/%s' % _uuid4_regex, OutputHandler), 
     (r'/status/%s' % _uuid4_regex, StatusHandler), 
     (r'/status/post/%s' % _uuid4_regex, StatusPostHandler), 
