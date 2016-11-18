@@ -48,17 +48,12 @@
             return function (e) {
                 if (e.keyCode === 9) {
                     var value = $(self.$activeOption[0]).data('value');
-                    // expand only if directory
-                    if (value.endsWith('/')) {
-                        console.log(self.getValue());
-                        self.setTextboxValue(self.getValue() + value);
-                        self.onSearchChange(value);
-                        self.refreshOptions();
-                        e.preventDefault()
-                        return;
-                    }
+                    self.setTextboxValue(value);
+                    self.onSearchChange(value);
+                    e.preventDefault();
+                } else {
+                    return original.apply(this, arguments);
                 }
-                return original.apply(this, arguments);
             }
         })()
     })
@@ -115,7 +110,6 @@
             allowEmptyOption: true,
             delimiter: "\n",
             highlight: false,
-            selectOnTab: true,
             maxItems: maxItems,
             // http://stackoverflow.com/questions/32378962/how-can-i-disable-automatic-filtering-in-selectize-js-built-in-plugin-modil
             score: function() { return function() { return 1; }; },
