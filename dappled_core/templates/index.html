@@ -140,7 +140,10 @@
                     callback();
                 },
                 success: function(res) {
-                    selectize.clearOptions();
+                    // clears old options (side effect of scoring function above)
+                    selectize.userOptions = {};
+                    selectize.options = selectize.sifter.items = {};
+
                     callback(res);
                 }
             });
