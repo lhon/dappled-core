@@ -141,6 +141,8 @@
                 },
                 success: function(res) {
                     // clears old options (side effect of scoring function above)
+                    // code is subset of selectize.clearOptions()
+                    selectize.loadedSearches = {};
                     selectize.userOptions = {};
                     selectize.options = selectize.sifter.items = {};
 
