@@ -211,9 +211,11 @@ define([
             editor.focus();
 
             $('#save_inputs_json').click(function () {
-                var lang = Jupyter.notebook.metadata.kernelspec.language;
-                if (lang == 'python') {
+                var lang = Jupyter.notebook.metadata.kernelspec.name;
+                if (lang == 'python2') {
                     Jupyter.notebook.kernel.execute("!echo '" + JSON.stringify(json_editor.getValue()) + "' > inputs.json");
+                } else if (lang == 'ir') {
+                    Jupyter.notebook.kernel.execute("cat('" + JSON.stringify(json_editor.getValue()) + "',file='inputs.json',sep='\n')");
                 } else {
                     alert('Creating inputs.json here using ' + lang + ' not yet supported')
                 }
