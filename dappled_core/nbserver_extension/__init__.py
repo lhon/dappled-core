@@ -20,7 +20,7 @@ class InputsJsonHandler(IPythonHandler):
     @web.authenticated
     def post(self):
         with open(tf.name, 'wb') as f:
-            print(self.request.body, file=f)
+            f.write(self.request.body)
         self.finish(tf.name)
 
 def load_jupyter_server_extension(nb_server_app):

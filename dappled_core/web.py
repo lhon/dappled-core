@@ -27,7 +27,8 @@ import sys
 import threading
 import webbrowser
 
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # unbuffered
+# py3 doesn't like this, but both py2/3 seem to work without it?
+# sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # unbuffered
 
 HOST = None
 ROOT = os.path.dirname(__file__)
@@ -84,23 +85,24 @@ class DappledNotebook(web.RequestHandler):
         yml = ruamel.yaml.load(open('dappled.yml').read(), ruamel.yaml.RoundTripLoader) 
         notebook_filename = yml['filename']
 
-        inputs = json.loads(self.request.body)
+        inputs = json.loads(self.request.body.decode('utf8'))
         uuid4 = str(uuid.uuid4())
         try: os.mkdir('jobs')
         except: pass
         path = os.path.join('jobs', uuid4)
         os.mkdir(path)
 
-        with open(os.path.join(path, 'inputs.json'), 'w') as f:
-            print(self.request.body.strip(), file=f)
+        with open(os.path.join(path, 'inputs.json'), 'wb') as f:
+            f.write(self.request.body)
 
         job_conditions[uuid4] = tornado.locks.Condition()
         self.finish(uuid4)
 
         status_url = '/'.join([HOST, 'status/post', uuid4])
         print('python', os.path.join(ROOT, 'run.py'), path, notebook_filename, status_url)
-    	result, error = yield call_subprocess(['python', os.path.join(ROOT, 'run.py'), path, notebook_filename, status_url])
-        print('stdin sync: ', result, error)
+        result, error = yield call_subprocess(['python', os.path.join(ROOT, 'run.py'), path, notebook_filename, status_url])
+        # print('run.py output:', result.decode('utf8').replace(r'\n', '\n'))
+        # if error: print('run.py errors:', error.decode('utf8').replace(r'\n', '\n'))
 
         job_conditions[uuid4].notify()
         del job_conditions[uuid4]
@@ -242,6 +244,8 @@ class PathAutocompleteHandler(web.RequestHandler):
 
 _uuid4_regex = r"(?P<uuid4>[0-9a-f-]{36})"
 
+# TODO: handle paths on windows
+static_path = "envs/default/lib/python%d.%d/site-packages/notebook/static/" % sys.version_info[:2]
 application = web.Application([
     (r'/', DappledNotebook),
     (r'/results/%s' % _uuid4_regex, ResultsHandler), 
@@ -253,7 +257,7 @@ application = web.Application([
     (r"/static/urth/(.*)", web.StaticFileHandler, {"path": os.path.join(ROOT, "static", "urth")}),
     (r"/static/imgs/(.*)", web.StaticFileHandler, {"path": os.path.join(ROOT, "static", "imgs")}),
     (r"/static/jupyter_dashboards/(.*)", web.StaticFileHandler, {"path": "envs/default/share/jupyter/nbextensions/jupyter_dashboards"}),
-    (r"/static/(.*)", web.StaticFileHandler, {"path": "envs/default/lib/python2.7/site-packages/notebook/static/"}),
+    (r"/static/(.*)", web.StaticFileHandler, {"path": static_path}),
     ],
     template_path=os.path.join(ROOT, 'templates'),
     autoescape=None,
