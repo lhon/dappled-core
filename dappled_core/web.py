@@ -116,6 +116,23 @@ class ResultsHandler(web.RequestHandler):
         inputs_path = os.path.join('jobs', uuid4, 'inputs.json')
         inputs = json.load(open(inputs_path))
 
+        # truncate large input values
+        for k,v in inputs.iteritems():
+            if not isinstance(v, basestring):
+                continue
+
+            newv = []
+            lines = v.split('\n')
+            max_lines = 10
+            for line in lines[:max_lines]:
+                if len(line) > 80:
+                    newv.append(line[:80] + '...')
+                else:
+                    newv.append(line)
+            if len(lines) > max_lines:
+                newv.append('(%d lines skipped)' % len(lines)-max_lines)
+            inputs[k] = '\n'.join(newv)
+
         self.render('results.html',
             json_schema=json.dumps(json_schema),
             inputs=inputs,
