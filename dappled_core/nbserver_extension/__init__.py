@@ -1,9 +1,27 @@
+from __future__ import absolute_import, print_function
+
+import atexit
+import os
+import tempfile
+
 from notebook.utils import url_path_join
 from notebook.base.handlers import IPythonHandler
+from tornado import web
 
-class HelloWorldHandler(IPythonHandler):
-    def get(self):
-        self.finish('Hello, world!')
+tf = tempfile.NamedTemporaryFile(delete=False)
+tf.close()
+
+def clean():
+    try: os.remove(tf.name)
+    except: pass
+atexit.register(clean)
+
+class InputsJsonHandler(IPythonHandler):
+    @web.authenticated
+    def post(self):
+        with open(tf.name, 'wb') as f:
+            print(self.request.body, file=f)
+        self.finish(tf.name)
 
 def load_jupyter_server_extension(nb_server_app):
     """
@@ -14,5 +32,5 @@ def load_jupyter_server_extension(nb_server_app):
     """
     web_app = nb_server_app.web_app
     host_pattern = '.*$'
-    route_pattern = url_path_join(web_app.settings['base_url'], '/hello')
-    web_app.add_handlers(host_pattern, [(route_pattern, HelloWorldHandler)])
+    route_pattern = url_path_join(web_app.settings['base_url'], '/inputs')
+    web_app.add_handlers(host_pattern, [(route_pattern, InputsJsonHandler)])

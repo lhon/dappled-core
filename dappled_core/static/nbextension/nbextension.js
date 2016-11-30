@@ -211,14 +211,31 @@ define([
             editor.focus();
 
             $('#save_inputs_json').click(function () {
-                var lang = Jupyter.notebook.metadata.kernelspec.name;
-                if (lang == 'python2') {
-                    Jupyter.notebook.kernel.execute("!echo '" + JSON.stringify(json_editor.getValue()) + "' > inputs.json");
-                } else if (lang == 'ir') {
-                    Jupyter.notebook.kernel.execute("cat('" + JSON.stringify(json_editor.getValue()) + "',file='inputs.json',sep='\n')");
-                } else {
-                    alert('Creating inputs.json here using ' + lang + ' not yet supported')
-                }
+                var settings = {
+                    processData : false,
+                    cache : false,
+                    type : "POST",
+                    data : JSON.stringify(json_editor.getValue()),
+                    // dataType : "json",
+                    success : function (data, status, xhr) {
+                        var path = data;
+                        if (Jupyter.notebook.metadata.kernelspec.language == 'python') {
+                            // python2 and python 3
+                            var cmd = 'import shutil; shutil.copyfile("' + path + '", "inputs.json")';
+                            Jupyter.notebook.kernel.execute(cmd);
+                        } else if (Jupyter.notebook.metadata.kernelspec.name == 'ir') {
+                            var cmd = 'file.copy("' + path + '", "inputs.json", overwrite=TRUE)';
+                            Jupyter.notebook.kernel.execute(cmd);
+                        } else {
+                            alert('Creating inputs.json here using ' + Jupyter.notebook.metadata.kernelspec.language + ' not yet supported')
+                        }
+                    },
+                    error : function () {
+                    }
+                };
+                var url = '/inputs';
+                $.ajax(url, settings);
+
                 return false;
             })
         });
@@ -247,7 +264,7 @@ define([
         var json_str = "";
         var newv;
         for (var k in json) {
-            console.log(k, v)
+            // console.log(k, v)
             var v = json[k];
             if (typeof(v) != "object" || $.isArray(v)) {
                 newv = JSON.stringify(v);
