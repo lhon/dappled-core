@@ -41,6 +41,8 @@ define([
             .text('Submit')
             .attr('title', 'Saves choices to input.json')
             .attr('id', 'save_inputs_json')
+        var save_message = $('<div />')
+            .attr('id', 'save_message')
         var right_div = $('<div />')
             .css('float', 'right')
             .css('width', '50%')
@@ -48,7 +50,8 @@ define([
             .css('padding-left', '10px')
             .css('border-left', '1px solid #ccc')
             .append(jediv)
-            .append(save_inputs_button);
+            .append(save_inputs_button)
+            .append(save_message);
         var side_by_side = $('<div />')
             .css('height', '100%')
             .append(hjdiv)
@@ -229,6 +232,7 @@ define([
                         } else {
                             alert('Creating inputs.json here using ' + Jupyter.notebook.metadata.kernelspec.language + ' not yet supported')
                         }
+                        $('#save_message').html('inputs.json created').stop().show().delay(2000).fadeOut();
                     },
                     error : function () {
                     }
