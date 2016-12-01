@@ -13,6 +13,7 @@ import tornado.process
 
 import ruamel.yaml
 import jinja2
+import netifaces
 
 import argparse
 import errno
@@ -30,7 +31,7 @@ import webbrowser
 # py3 doesn't like this, but both py2/3 seem to work without it?
 # sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # unbuffered
 
-HOST = None
+PORT = None
 ROOT = os.path.dirname(__file__)
 
 job_conditions = {}
@@ -66,6 +67,18 @@ def call_subprocess(cmd, stdin_data=None, stdin_async=False):
 
     raise gen.Return((result, error))
 
+# copied from dappled/lib/utils.py
+def get_ip_addresses():
+    results = []
+    for if_name in netifaces.interfaces():
+        if if_name == 'lo': continue
+        for info in netifaces.ifaddresses(if_name).setdefault(netifaces.AF_INET, []):
+            if 'addr' in info:
+                results.append(info['addr'])
+    if not results:
+        return ['127.0.0.1']
+    return results
+
 class DappledNotebook(web.RequestHandler):
     def get(self, uuid4=None):
         yml = ruamel.yaml.load(open('dappled.yml').read(), ruamel.yaml.RoundTripLoader) 
@@ -80,8 +93,6 @@ class DappledNotebook(web.RequestHandler):
 
     @gen.coroutine
     def post(self):
-        print(self.request.body)
-
         yml = ruamel.yaml.load(open('dappled.yml').read(), ruamel.yaml.RoundTripLoader) 
         notebook_filename = yml['filename']
 
@@ -98,7 +109,7 @@ class DappledNotebook(web.RequestHandler):
         job_conditions[uuid4] = tornado.locks.Condition()
         self.finish(uuid4)
 
-        status_url = '/'.join([HOST, 'status/post', uuid4])
+        status_url = '/'.join(['http://localhost:%d' % PORT, 'status/post', uuid4])
         print('python', os.path.join(ROOT, 'run.py'), path, notebook_filename, status_url)
         result, error = yield call_subprocess(['python', os.path.join(ROOT, 'run.py'), path, notebook_filename, status_url])
         # print('run.py output:', result.decode('utf8').replace(r'\n', '\n'))
@@ -316,16 +327,22 @@ def main():
                           'no available port could be found.')
         sys.exit(1)
 
-    global HOST
+    global PORT
+    PORT = port
+
+    # if connecting over SSH, then require server mode
+    if ('SSH_CONNECTION' in os.environ or 'SSH_CLIENT' in os.environ):
+        print('SSH connection detected; using --server')
+        args.server = True
+        # TODO: password....
+
     if args.server:
-        host = socket.gethostbyname_ex(socket.gethostname())
-        if host[0]:
-            print('Serving from %s:%d' % (host[0], port))
-        if len(host[2]) > 0:
-            print('Serving from %s:%d' % (host[2][0], port))
+        print('Serving from:')
+        ip_addresses = get_ip_addresses()
+        for ip in ip_addresses:
+            print('  http://%s:%d' % (ip, port))
     else:
         url = 'http://%s:%d' % (ip, port)
-        HOST = url
         print('Opening browser at:', url)
         try:
             browser = webbrowser.get(None)
