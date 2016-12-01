@@ -11,6 +11,7 @@ setup(name='dappled-core',
       #       'nbserver_extension/*'
       #       ],
       # }
+      zip_safe=False,
       entry_points={
           'console_scripts': [
               'dappled-run = dappled_core.web:main'

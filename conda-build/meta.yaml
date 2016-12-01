@@ -28,7 +28,7 @@ build:
 requirements:
   build:
     - python
-    - setuptools
+    # - setuptools
 
   run:
     - python
@@ -36,6 +36,7 @@ requirements:
     - ruamel.yaml
     - jupyter_dashboards
     - runipy
+    - psutil
     - netifaces
 
 test:
