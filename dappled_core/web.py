@@ -300,6 +300,12 @@ def main():
 
     http_server = HTTPServer(application)
 
+    # if connecting over SSH, then require server mode
+    if ('SSH_CONNECTION' in os.environ or 'SSH_CLIENT' in os.environ) and not args.server:
+        print('SSH connection detected; using --server')
+        args.server = True
+        # TODO: password....
+
     if args.server:
         ip = '0.0.0.0'
     else:
@@ -329,12 +335,6 @@ def main():
 
     global PORT
     PORT = port
-
-    # if connecting over SSH, then require server mode
-    if ('SSH_CONNECTION' in os.environ or 'SSH_CLIENT' in os.environ):
-        print('SSH connection detected; using --server')
-        args.server = True
-        # TODO: password....
 
     if args.server:
         print('Serving from:')
