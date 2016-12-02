@@ -38,6 +38,7 @@ requirements:
     - runipy
     - psutil
     - netifaces
+    - requests
 
 test:
   # Python imports
