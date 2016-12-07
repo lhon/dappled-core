@@ -84,9 +84,13 @@ class DappledNotebook(web.RequestHandler):
         yml = ruamel.yaml.load(open('dappled.yml').read(), ruamel.yaml.RoundTripLoader) 
         notebook = nbformat.read(open(yml['filename']), as_version=4)
         json_schema = notebook.metadata.dappled.form.json_schema
-        
+        if type(json_schema) is list: # backwards compatibility; going forward should always be a list of strings
+            json_schema_str = ''.join(json_schema)
+        else:
+            json_schema_str = json.dumps(json_schema)
+            
         self.render('index.html',
-            json_schema=json.dumps(json_schema),
+            json_schema=json_schema_str,
             name=yml.get('name') or '',
             description = yml.get('description') or '',
         )

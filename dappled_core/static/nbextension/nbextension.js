@@ -267,6 +267,7 @@ define([
         if (!indent) indent = 0;
         var json_str = "";
         var newv;
+
         for (var k in json) {
             // console.log(k, v)
             var v = json[k];
@@ -281,19 +282,38 @@ define([
         return json_str;
     }
 
+    function to_json_string_array(json) {
+        return JSON.stringify(json, null, 2).split('\n');
+    }
+
+    function from_json_string_array(json_str_arr) {
+        if (! $.isArray(json_str_arr)) return json_str_arr; // backwards compatibility
+        
+        var json_str = json_str_arr.join('');
+        if (json_str) {
+            return JSON.parse(json_str);
+        } else {
+            return {}
+        }
+    }
+
     function load_ipython_extension() {
 
         var handler = function () {
             var that = this;
             var md = Jupyter.notebook.metadata;
             if (!md.dappled) md.dappled = {};
-            if (!md.dappled.form) md.dappled.form = {json:"",json_schema:""}
+            if (!md.dappled.form) md.dappled.form = {json:[],json_schema:[]}
+
+            var json = from_json_string_array(md.dappled.form.json);
             edit_metadata({
-                hjson_text: format_json(md.dappled.form.json),
+                hjson_text: format_json(json),
                 callback: function (json, json_schema) {
+                    var json_arr = to_json_string_array(json);
+                    var json_schema_arr = to_json_string_array(json_schema);
                     md.dappled.form = {
-                        json: json,
-                        json_schema: json_schema
+                        json: json_arr,
+                        json_schema: json_schema_arr
                     }
                 },
                 notebook: Jupyter.notebook,
