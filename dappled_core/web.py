@@ -88,7 +88,7 @@ class DappledNotebook(web.RequestHandler):
             json_schema_str = ''.join(json_schema)
         else:
             json_schema_str = json.dumps(json_schema)
-            
+
         self.render('index.html',
             json_schema=json_schema_str,
             name=yml.get('name') or '',
@@ -116,8 +116,8 @@ class DappledNotebook(web.RequestHandler):
         status_url = '/'.join(['http://localhost:%d' % PORT, 'status/post', uuid4])
         print('python', os.path.join(ROOT, 'run.py'), path, notebook_filename, status_url)
         result, error = yield call_subprocess(['python', os.path.join(ROOT, 'run.py'), path, notebook_filename, status_url])
-        # print('run.py output:', result.decode('utf8').replace(r'\n', '\n'))
-        # if error: print('run.py errors:', error.decode('utf8').replace(r'\n', '\n'))
+        print('run.py output:', result.decode('utf8').replace(r'\n', '\n'))
+        if error: print('run.py errors:', error.decode('utf8').replace(r'\n', '\n'))
 
         job_conditions[uuid4].notify()
         del job_conditions[uuid4]
@@ -157,7 +157,7 @@ class ResultsHandler(web.RequestHandler):
         )
 
 
-def get_app_exporter():
+def get_dashboard_exporter():
     here = os.path.dirname(__file__)
     template_path = os.path.abspath(os.path.join(here, 'templates'))
 
@@ -190,7 +190,7 @@ class OutputHandler(web.RequestHandler):
 
             resources = {}
         else:
-            exporter = get_app_exporter()
+            exporter = get_dashboard_exporter()
 
             hasNotebookMetadata = True
             activeView = params['activeView']

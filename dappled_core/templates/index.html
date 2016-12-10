@@ -59,6 +59,7 @@
     })
 
     JSONEditor.plugins.selectize.enable = true;
+    JSONEditor.defaults.editors.object.options.expand_height = true;
 
     // Initialize the editor with a JSON schema
     var editor = new JSONEditor(document.getElementById('editor_holder'),{
@@ -67,7 +68,6 @@
         disable_edit_json: true,
         disable_properties: true,
         theme: 'bootstrap3',
-
     });
       
     // Hook up the submit button to log to the console
