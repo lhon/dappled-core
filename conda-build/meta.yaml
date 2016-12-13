@@ -35,7 +35,6 @@ requirements:
     - notebook
     - ruamel.yaml
     - jupyter_dashboards
-    - runipy
     - psutil
     - netifaces
     - requests

@@ -10,6 +10,7 @@ import json
 import subprocess
 import sys
 from time import sleep
+import shutil
 
 
 def get_exe(path):
@@ -147,7 +148,7 @@ class StageProcessor:
                     self.seen.add(k)
 
 if __name__ == '__main__':
-    output_dir = sys.argv[1]
+    output_dir = os.path.abspath(sys.argv[1])
     notebook_filename = sys.argv[2]
     status_url = sys.argv[3]
 
@@ -158,7 +159,14 @@ if __name__ == '__main__':
 
     os.chdir(output_dir)
 
-    proc = subprocess.Popen(['runipy', notebook_path, 'output.ipynb', '--no-chdir'],
+    # nbconvert uses notebook path as current working directory
+    # no CLI option to change this, so copy file as workaround
+    notebook_path2 = os.path.join(output_dir, 'template.ipynb')
+    shutil.copyfile(notebook_path, notebook_path2)
+
+    # proc = subprocess.Popen(['runipy', notebook_path, 'output.ipynb', '--no-chdir'],
+    proc = subprocess.Popen(['jupyter-nbconvert', '--execute', '--ExecutePreprocessor.timeout=-1', 
+        '--to', 'notebook', '--output-dir', output_dir, '--output', 'output.ipynb', notebook_path2],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # print proc.pid
