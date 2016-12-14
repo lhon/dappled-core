@@ -2,19 +2,16 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import nbformat
 from nbconvert import HTMLExporter
-from nbconvert.filters.markdown_mistune import markdown2html_mistune
 
 import tornado
-import tornado.web
 from tornado.httpserver import HTTPServer
+import tornado.web
 from tornado import web, gen
 import tornado.websocket
 import tornado.locks
-import tornado.process
 
 import ruamel.yaml
 import jinja2
-import netifaces
 
 import argparse
 import errno
@@ -24,11 +21,12 @@ import uuid
 import glob
 import os
 import socket
-import subprocess
 import sys
 import threading
 import webbrowser
 from datetime import datetime
+
+from dappled_core.lib.utils import format_description, call_subprocess, get_dashboard_exporter
 
 # py3 doesn't like this, but both py2/3 seem to work without it?
 # sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # unbuffered
@@ -38,54 +36,6 @@ ROOT = os.path.dirname(__file__)
 
 job_conditions = {}
 
-# https://gist.github.com/FZambia/5756470
-
-STREAM = tornado.process.Subprocess.STREAM
-
-@gen.coroutine
-def call_subprocess(cmd, stdin_data=None, stdin_async=False):
-    """
-    Wrapper around subprocess call using Tornado's Subprocess class.
-    """
-    stdin = STREAM if stdin_async else subprocess.PIPE
-
-    sub_process = tornado.process.Subprocess(
-        cmd, stdin=stdin, stdout=STREAM, stderr=STREAM
-    )
-
-    if stdin_data:
-        if stdin_async:
-            yield gen.Task(sub_process.stdin.write, stdin_data)
-        else:
-            sub_process.stdin.write(stdin_data)
-
-    if stdin_async or stdin_data:
-        sub_process.stdin.close()
-
-    result, error = yield [
-        gen.Task(sub_process.stdout.read_until_close),
-        gen.Task(sub_process.stderr.read_until_close)
-    ]
-
-    raise gen.Return((result, error))
-
-# copied from dappled/lib/utils.py
-def get_ip_addresses():
-    results = []
-    for if_name in netifaces.interfaces():
-        if if_name == 'lo': continue
-        for info in netifaces.ifaddresses(if_name).setdefault(netifaces.AF_INET, []):
-            if 'addr' in info:
-                results.append(info['addr'])
-    if not results:
-        return ['127.0.0.1']
-    return results
-
-def format_description(yml):
-    description = yml.get('description')
-    if description:
-        return markdown2html_mistune(description)
-    return ''
 
 class DappledNotebook(web.RequestHandler):
     def get(self, uuid4=None):
@@ -173,21 +123,6 @@ class ResultsHandler(web.RequestHandler):
             job_date=job_date,
         )
 
-
-def get_dashboard_exporter():
-    here = os.path.dirname(__file__)
-    template_path = os.path.abspath(os.path.join(here, 'templates'))
-
-    class MyHTMLExporter(HTMLExporter):
-        def _default_template_path_default(self):
-            return template_path
-
-        def _template_file_default(self):
-            return 'dashboard'
-
-    exporter = MyHTMLExporter()
-
-    return exporter
 
 
 class OutputHandler(web.RequestHandler):
