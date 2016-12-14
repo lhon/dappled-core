@@ -197,5 +197,8 @@ if __name__ == '__main__':
 
     print(proc.stderr.read())
 
+    # cleanup
+    os.remove(notebook_path2)
+
 
 
