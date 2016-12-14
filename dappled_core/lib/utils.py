@@ -1,20 +1,31 @@
 import os
 import subprocess
 import sys
+import time
 
 from nbconvert import HTMLExporter
 from nbconvert.filters.markdown_mistune import markdown2html_mistune
 from tornado import web, gen
 import tornado.process
 from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
 import netifaces
 
-# https://gist.github.com/FZambia/5756470
-
-STREAM = tornado.process.Subprocess.STREAM
 
 @gen.coroutine
 def call_subprocess(cmd, stdin_data=None, stdin_async=False):
+    if os.name == 'nt':
+        assert stdin_data is None and stdin_async is False
+        ret = yield call_subprocess_windows(cmd)
+    else:
+        ret = yield call_subprocess_posix(cmd, stdin_data, stdin_async)
+
+    raise gen.Return(ret)
+
+# https://gist.github.com/FZambia/5756470
+STREAM = tornado.process.Subprocess.STREAM
+@gen.coroutine
+def call_subprocess_posix(cmd, stdin_data=None, stdin_async=False):
     """
     Wrapper around subprocess call using Tornado's Subprocess class.
     """
@@ -39,6 +50,21 @@ def call_subprocess(cmd, stdin_data=None, stdin_async=False):
     ]
 
     raise gen.Return((result, error))
+
+@gen.coroutine
+def call_subprocess_windows(cmd, pollrate=0.5):
+    ''' 
+    async-friendly polling for windows
+    since tornado's Subprocess is posix only:
+    https://github.com/tornadoweb/tornado/commit/47af4c0bba37a58c1af64ccc95f386098074a354
+    '''
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    while proc.poll() is None:
+        # http://stackoverflow.com/questions/11128923/tornado-equivalent-of-delay
+        yield gen.Task(IOLoop.instance().add_timeout, time.time() + pollrate)
+
+    raise gen.Return((proc.stdout.read(), proc.stderr.read()))
 
 # copied from dappled/lib/utils.py
 def get_ip_addresses():
