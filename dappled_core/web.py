@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function, division, unicode_litera
 
 import nbformat
 from nbconvert import HTMLExporter
+from nbconvert.filters.markdown_mistune import markdown2html_mistune
 
 import tornado
 import tornado.web
@@ -27,6 +28,7 @@ import subprocess
 import sys
 import threading
 import webbrowser
+from datetime import datetime
 
 # py3 doesn't like this, but both py2/3 seem to work without it?
 # sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # unbuffered
@@ -79,6 +81,12 @@ def get_ip_addresses():
         return ['127.0.0.1']
     return results
 
+def format_description(yml):
+    description = yml.get('description')
+    if description:
+        return markdown2html_mistune(description)
+    return ''
+
 class DappledNotebook(web.RequestHandler):
     def get(self, uuid4=None):
         yml = ruamel.yaml.load(open('dappled.yml').read(), ruamel.yaml.RoundTripLoader) 
@@ -92,7 +100,7 @@ class DappledNotebook(web.RequestHandler):
         self.render('index.html',
             json_schema=json_schema_str,
             name=yml.get('name') or '',
-            description = yml.get('description') or '',
+            description = format_description(yml),
         )
 
     @gen.coroutine
@@ -131,6 +139,13 @@ class ResultsHandler(web.RequestHandler):
         inputs_path = os.path.join('jobs', uuid4, 'inputs.json')
         inputs = json.load(open(inputs_path))
 
+        output_path = os.path.abspath(os.path.join('jobs', uuid4))
+        try:
+            m = os.stat(output_path).st_mtime
+            job_date = datetime.fromtimestamp(m)
+        except:
+            job_date = None
+
         # truncate large input values
         for k,v in inputs.iteritems():
             if not isinstance(v, basestring):
@@ -153,7 +168,9 @@ class ResultsHandler(web.RequestHandler):
             inputs=inputs,
             uuid4=uuid4,
             name=yml.get('name') or '',
-            description = yml.get('description') or '',
+            description = format_description(yml),
+            output_path = output_path,
+            job_date=job_date,
         )
 
 

@@ -51,11 +51,13 @@
     </style>
   </head>
   <body>
-    <h1>Results for {{name}}</h1>
+    <div id="newjob">&laquo; <a href='/'>Start new job</a></div>
+
+    <h1><span id="status"></span> {{name}}</h1>
 
     <div id="description">{{description}}</div>
     
-
+    <hr>
     <div id='modes'></div>
     <div id='output'></div>
     <div id='results'></div>
@@ -73,7 +75,8 @@
 
     <p>
         Job ID: {{uuid4}}<br />
-        Started: 1/1/1111
+        Output Directory: {{output_path}}<br />
+        Started: {{ job_date }}
     </p>
     
 
@@ -90,6 +93,7 @@
             dataType: "json",
             success: function (json) {
                 $('#output').html(json.html);
+                $('#status').html("Results of");
 
                 if (json.results) {
                     var results = $("<ul />")
@@ -121,7 +125,9 @@
         
         load_output();
 
-        $('#modes').html("View output as: <a href='#' data-mode='notebook'>notebook</a> <a href='#' data-mode='grid'>grid</a> <a href='#' data-mode='report'>report</a>");
+        // $('#newjob').html("&laquo; <a href='/'>Start new job</a>");
+        $('#status').html("Running");
+        $('#modes').html("View output as: <a href='#' data-mode='notebook'>notebook</a> <a href='#' data-mode=''>default</a>");
         $('#modes a').click(function () {
             var mode = $(this).data("mode");
             load_output(mode);
