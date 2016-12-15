@@ -308,6 +308,12 @@ def main():
             b = lambda : browser.open(url, new=2)
             threading.Thread(target=b).start()
 
+    # allows unbuffered() in parent process to catch ctrl-c on Windows
+    # http://stackoverflow.com/questions/25965332/subprocess-stdin-pipe-does-not-return-until-program-terminates
+    def ping():
+        print('ping-%#@($')
+    tornado.ioloop.PeriodicCallback(ping, 1000).start()
+
     tornado.ioloop.IOLoop.instance().start()
 
 if __name__ == '__main__':
