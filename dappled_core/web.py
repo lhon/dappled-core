@@ -28,6 +28,11 @@ from datetime import datetime
 
 from dappled_core.lib.utils import format_description, call_subprocess, get_dashboard_exporter
 
+try:
+    basestring
+except NameError:
+    basestring = (str, bytes)
+  
 # py3 doesn't like this, but both py2/3 seem to work without it?
 # sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # unbuffered
 
@@ -97,7 +102,7 @@ class ResultsHandler(web.RequestHandler):
             job_date = None
 
         # truncate large input values
-        for k,v in inputs.iteritems():
+        for k,v in inputs.items():
             if not isinstance(v, basestring):
                 continue
 
