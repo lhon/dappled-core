@@ -26,13 +26,13 @@ import threading
 import webbrowser
 from datetime import datetime
 
-from dappled_core.lib.utils import format_description, call_subprocess, get_dashboard_exporter
+from dappled_core.lib.utils import format_description, call_subprocess, get_dashboard_exporter, format_elapsed
 
 try:
     basestring
 except NameError:
     basestring = (str, bytes)
-  
+
 # py3 doesn't like this, but both py2/3 seem to work without it?
 # sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0) # unbuffered
 
@@ -118,6 +118,25 @@ class ResultsHandler(web.RequestHandler):
                 newv.append('(%d lines skipped)' % len(lines)-max_lines)
             inputs[k] = '\n'.join(newv)
 
+        jobinfo_path = os.path.join('jobs', uuid4, 'jobinfo.json')
+        jobinfo = {}
+        if os.path.exists(jobinfo_path):
+            ji = json.load(open(jobinfo_path))
+            d = []
+            for pid, v in ji['data'].items():
+                d.append(dict(
+                    id=pid,
+                    content=v['name'],
+                    start=v['start'],
+                    end=v['end'],
+                    title='max_rss: %0.1fM, cpu: %s' % (v['max_rss']/1e6, format_elapsed(v['cpu_time']))
+                    ))
+            jobinfo['data'] = json.dumps(d)
+            jobinfo['min'] = min(x['start'] for x in ji['data'].values())
+            jobinfo['max'] = max(x['end'] for x in ji['data'].values())
+            jobinfo['core_time'] = format_elapsed(ji['core_seconds'])
+            jobinfo['elapsed_time'] = format_elapsed(ji['elapsed_time'])
+
         self.render('results.html',
             json_schema=json.dumps(json_schema),
             inputs=inputs,
@@ -126,6 +145,7 @@ class ResultsHandler(web.RequestHandler):
             description = format_description(yml),
             output_path = output_path,
             job_date=job_date,
+            jobinfo=jobinfo,
         )
 
 

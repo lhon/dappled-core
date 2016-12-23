@@ -99,3 +99,10 @@ def get_dashboard_exporter():
 
     return exporter
 
+def format_elapsed(sec):
+    t, u = sec, 's'
+    if t > 60.: t, u = t/60., 'm'
+    if t > 60.: t, u = t/60., 'h'
+
+    return '%0.1f%s' % (t, u)
+

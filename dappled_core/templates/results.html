@@ -9,6 +9,8 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.1/js/standalone/selectize.js"></script>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.1/css/selectize.bootstrap3.css">
     <script src="//cdnjs.cloudflare.com/ajax/libs/json-editor/0.7.28/jsoneditor.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/vis/4.17.0/vis.min.js"></script>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/vis/4.17.0/vis.min.css">
     <style>
     /* http://stackoverflow.com/questions/9590313/how-to-use-the-scroll-and-max-options-in-autocomplete */
     .ui-autocomplete {
@@ -76,7 +78,12 @@
     <p>
         Job ID: {{uuid4}}<br />
         Output Directory: {{output_path}}<br />
-        Started: {{ job_date }}
+        Started: {{ job_date }}<br />
+        {% if jobinfo %}
+        Elapsed time: {{jobinfo['elapsed_time']}}<br />
+        Core hours: {{jobinfo['core_time']}}<br />
+        {% end %}
+        <div id="timeline"></div>
     </p>
     
 
@@ -117,10 +124,17 @@
     }
 
     var ws = new WebSocket(ws_url('/status/{{uuid4}}'));
+    var job_was_running = false;
     ws.onmessage = function(ev){
         if (ev.data != "done") {
             $('#output').html('<img src="/static/imgs/loading.gif"><br />' + ev.data);
+            job_was_running = true;
             return;
+        }
+
+        if (job_was_running) {
+            // reload page to pick up jobinfo stuff
+            window.location.reload();
         }
         
         load_output();
@@ -134,6 +148,16 @@
         })
 
     };
+
+    {% if jobinfo %}
+    var container = document.getElementById('timeline');
+    var items = new vis.DataSet({{jobinfo['data']}});
+    var options = {
+        min: "{{jobinfo['min']}}",
+        max: "{{jobinfo['max']}}",
+    };
+    var timeline = new vis.Timeline(container, items, options);
+    {% end %}
 
     </script>
 

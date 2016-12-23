@@ -5,6 +5,7 @@ import requests
 import ruamel.yaml
 
 import collections
+import datetime
 import os
 import json
 import subprocess
@@ -70,9 +71,12 @@ class ProcessData:
     def __init__(self, pid):
         self.data = {}
         self.parent_process = psutil.Process(pid)
+        self.start_time = datetime.datetime.utcnow()
+        self.core_seconds = 0.
 
-    def get_update(self):
+    def get_update(self, tick_size=0):
         active_processes = []
+        now = datetime.datetime.utcnow()
         for p in self.parent_process.children(recursive=True):
             try:
                 rss = p.memory_info().rss
@@ -87,17 +91,37 @@ class ProcessData:
                     name=get_friendly_name(p),
                     max_rss=rss,
                     time=c.user+c.system,
+                    start=now.strftime("%Y-%m-%dT%H:%M:%S"),
+                    end=now.strftime("%Y-%m-%dT%H:%M:%S"),
+                    cpu_time=0.,
                     )
             else:
                 if rss > self.data[pid]['max_rss']:
                     self.data[pid]['max_rss'] = rss
                 self.data[pid]['time'] = c.user+c.system
+                self.data[pid]['end'] = now.strftime("%Y-%m-%dT%H:%M:%S")
 
             if cpu_percent > 0:
                 info = self.data[pid]
-                active_processes.append([info['name'], cpu_percent, bytes2human(rss)])
+                active_processes.append([info['name'], cpu_percent, bytes2human(rss), pid])
+
+                if tick_size > 0:
+                    core_seconds = (cpu_percent/100.) * tick_size
+                    self.data[pid]['cpu_time'] += core_seconds
+                    self.core_seconds += core_seconds
 
         return active_processes
+
+    def elapsed_time(self):
+        return datetime.datetime.utcnow() - self.start_time
+
+    def as_json_string(self):
+        elapsed = self.elapsed_time()
+        return json.dumps(dict(
+            data=self.data,
+            core_seconds = self.core_seconds,
+            elapsed_time = elapsed.total_seconds(),
+            ))
 
 # Based on https://github.com/six8/pytailer
 # and http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/157035
@@ -179,10 +203,13 @@ if __name__ == '__main__':
 
     pd = ProcessData(proc.pid)
 
+    ticks = 0
+    tick_time = 2
     while proc.poll() is None:
+        sleep(tick_time)
 
         r = ['<table id="stats" class="infotable"><tr><th>Process Name</th><th>% CPU</th><th>Memory</th></tr>']
-        update = pd.get_update()
+        update = pd.get_update(tick_size=tick_time)
         if update:
             r.extend('<tr><td>{}</td><td>{}</td><td>{}</td></tr>'.format(*x) for x in update)
         else:
@@ -192,8 +219,17 @@ if __name__ == '__main__':
         if sp is not None:
             sp.check()
             r.append(sp.status())
+
+        r.append('Elapsed time: %s<br />' % pd.elapsed_time())
+        r.append('Core minutes: %0.2f<br />' % (pd.core_seconds/60.))
+
+        ticks += 1
+        if ticks < 2: continue # only start updating after it's been running for a bit
+
         requests.post(status_url, '\n'.join(r))
-        sleep(2)
+
+        with open('jobinfo.json', 'w') as f:
+            f.write(pd.as_json_string())
 
     print(proc.stderr.read())
 
