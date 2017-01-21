@@ -17,4 +17,5 @@ setup(name='dappled-core',
               'dappled-run = dappled_core.web:main'
           ]
       },
+      scripts=['dappled_core/scripts/jsonenv']
       )

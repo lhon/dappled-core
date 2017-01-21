@@ -229,6 +229,9 @@ define([
                         } else if (Jupyter.notebook.metadata.kernelspec.name == 'ir') {
                             var cmd = 'file.copy("' + path + '", "inputs.json", overwrite=TRUE)';
                             Jupyter.notebook.kernel.execute(cmd);
+                        } else if (Jupyter.notebook.metadata.kernelspec.language == 'bash') {
+                            var cmd = 'cp ' + path + ' inputs.json';
+                            Jupyter.notebook.kernel.execute(cmd);
                         } else {
                             alert('Creating inputs.json here using ' + Jupyter.notebook.metadata.kernelspec.language + ' not yet supported')
                         }
