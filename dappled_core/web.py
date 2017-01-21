@@ -26,7 +26,8 @@ import threading
 import webbrowser
 from datetime import datetime
 
-from dappled_core.lib.utils import format_description, call_subprocess, get_dashboard_exporter, format_elapsed
+from dappled_core.lib.utils import (format_description, call_subprocess, 
+    get_dashboard_exporter, format_elapsed, get_ip_addresses)
 
 try:
     basestring
