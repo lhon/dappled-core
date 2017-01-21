@@ -23,6 +23,9 @@ class InputsJsonHandler(IPythonHandler):
             f.write(self.request.body)
         self.finish(tf.name)
 
+    def check_xsrf_cookie(self):
+        pass # override default xsrf checking
+
 def load_jupyter_server_extension(nb_server_app):
     """
     Called when the extension is loaded.
