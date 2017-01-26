@@ -77,7 +77,12 @@ class ProcessData:
     def get_update(self, tick_size=0):
         active_processes = []
         now = datetime.datetime.utcnow()
-        for p in self.parent_process.children(recursive=True):
+        try:
+            iterator = self.parent_process.children(recursive=True)
+        except:
+            return active_processes
+
+        for p in iterator:
             try:
                 rss = p.memory_info().rss
                 c = p.cpu_times()
@@ -206,8 +211,6 @@ if __name__ == '__main__':
     ticks = 0
     tick_time = 2
     while proc.poll() is None:
-        sleep(tick_time)
-
         r = ['<table id="stats" class="infotable"><tr><th>Process Name</th><th>% CPU</th><th>Memory</th></tr>']
         update = pd.get_update(tick_size=tick_time)
         if update:
@@ -223,13 +226,15 @@ if __name__ == '__main__':
         r.append('Elapsed time: %s<br />' % pd.elapsed_time())
         r.append('Core minutes: %0.2f<br />' % (pd.core_seconds/60.))
 
-        ticks += 1
-        if ticks < 2: continue # only start updating after it's been running for a bit
-
-        requests.post(status_url, '\n'.join(r))
-
         with open('jobinfo.json', 'w') as f:
             f.write(pd.as_json_string())
+
+        ticks += 1
+        if ticks > 2: 
+            # only start updating after it's been running for a bit
+            requests.post(status_url, '\n'.join(r))
+
+        sleep(tick_time)
 
     print(proc.stderr.read())
 
