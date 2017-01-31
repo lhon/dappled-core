@@ -254,8 +254,10 @@ class PathAutocompleteHandler(web.RequestHandler):
 
 _uuid4_regex = r"(?P<uuid4>[0-9a-f-]{36})"
 
-# TODO: handle paths on windows
-static_path = "envs/default/lib/python%d.%d/site-packages/notebook/static/" % sys.version_info[:2]
+if os.name == 'nt':
+    static_path = "envs/default/lib/site-packages/notebook/static/"
+else:
+    static_path = "envs/default/lib/python%d.%d/site-packages/notebook/static/" % sys.version_info[:2]
 application = web.Application([
     (r'/', DappledNotebook),
     (r'/results/%s' % _uuid4_regex, ResultsHandler), 
